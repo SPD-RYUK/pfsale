@@ -1,0 +1,286 @@
+// PatentSale — Prisma schema
+// Designed to be SQLite-compatible locally and Postgres-compatible on Neon.
+// All JSON-ish values are stored as String (SQLite has no native array/json type)
+// and parsed in the application layer. This schema is reused AS-IS by Phase B
+// (automated patent data fetching) — see `dataSource` / `recordLocked` / `scoreSource`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Local dev: SQLite. Production: Neon serverless Postgres (pooled DATABASE_URL,
+  // direct DIRECT_URL for migrations). See README + ARCHITECTURE.md.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN USERS — internal team only. The admin panel is the single write path
+// to the marketplace, so admin auth has MFA (TOTP) required.
+// ─────────────────────────────────────────────────────────────────────────────
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  mfaSecret    String // TOTP shared secret (encrypt at rest in prod)
+  mfaEnabled   Boolean  @default(true)
+  role         String   @default("admin") // admin | super_admin
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dataRequests DataRequest[] @relation("DataRequestAssignee")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEADS — Phase A seller leads from the public "Request Now" consent form.
+// PII: name, email, phone. Subject to DPDPA erasure (hard-delete capable).
+// ─────────────────────────────────────────────────────────────────────────────
+model Lead {
+  id                  String   @id @default(cuid())
+  name                String
+  email               String
+  phone               String
+  patentNumber        String?
+  status              String   @default("new") // new | contacted | converted | archived
+  consent             Boolean  @default(false)
+  ageConfirmed        Boolean  @default(false)
+  consentTextSnapshot String? // snapshot of consent language at submission time
+  sourceUrl           String?
+  ipAddress           String? // truncated/anonymized
+  notes               String?
+  convertedListingId  String?  @unique // the Patent created from this lead
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  convertedListing Patent? @relation("LeadConversion")
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATENT LISTINGS — full record, reused as-is by Phase B automated fetch.
+// UNIQUE(patentNumber, jurisdiction) prevents duplicate listings.
+// `recordLocked` + `dataSource` prevent silent overwrites when Phase B runs.
+// ─────────────────────────────────────────────────────────────────────────────
+model Patent {
+  id        String   @id @default(cuid())
+  // Identity — UNIQUE constraint at DB level
+  patentNumber     String
+  jurisdiction     String // US, EP, IN, WO, JP, etc.
+
+  // Core bibliographic record
+  title            String
+  abstract         String?
+  claims           String?
+  description      String?
+  fieldOfUse       String? // e.g. "Telecommunications", "Biotech"
+  inventors        String? // JSON array as string
+  assignee         String?
+  applicationNumber String?
+  filingDate       DateTime?
+  grantDate        DateTime?
+  legalStatus      String? // granted | active | expired | lapsed | pending
+  patentFamilySize Int? // international coverage count
+
+  // AI-generated section summaries (admin writes or triggers on-demand)
+  summaryAbstract  String?
+  summaryClaims    String?
+  summaryField     String?
+  summaryGeneratedAt DateTime?
+
+  // Commercial readiness score — MANUAL in Phase A; formula deferred to Prompt 3.
+  readinessScore   Int? // 0-100, admin-assigned in this phase
+  scoreSource      String  @default("manual") // manual | computed (Prompt 3)
+  scoreNotes       String?
+  // Score input parameters (all OPTIONAL — admin never blocked from publishing)
+  claimBreadth     String? // narrow | medium | broad
+  remainingLifeYears Float?
+  forwardCitations Int?
+  marketSizeProxy  String? // small | medium | large | very-large
+  litigationHistory String? // none | low | moderate | high
+
+  // Commercialization stage — signals where the patent sits in the
+  // commercialization journey. Shown as a labeled badge on cards + detail.
+  stage            String? // research | prototype | pilot | commercial | market-ready | licensing
+
+  // Featured listing — admin-curated. Shown in the home "Featured" section.
+  featured         Boolean @default(false)
+  featuredAt       DateTime?
+
+  // Data provenance & integrity (Phase B coexistence)
+  dataSource       String  @default("admin-manual") // admin-manual | self-serve-automated
+  recordLocked     Boolean @default(false)
+
+  // Publishing
+  published        Boolean @default(false)
+  publishedAt      DateTime?
+
+  // Origin traceability
+  leadId           String?  @unique
+  lead             Lead?    @relation("LeadConversion", fields: [leadId], references: [id])
+
+  inquiries        BuyerInquiry[]
+  reportRequests   ReportRequest[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([patentNumber, jurisdiction])
+  @@index([published])
+  @@index([featured])
+  @@index([stage])
+  @@index([fieldOfUse])
+  @@index([jurisdiction])
+  @@index([legalStatus])
+  @@index([readinessScore])
+  @@index([grantDate])
+  @@index([publishedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUYER INQUIRIES — "Express Interest" from patent detail page.
+// PII: buyerName, buyerEmail, buyerPhone. Subject to DPDPA hard-delete.
+// Deleting an inquiry never deletes the published patent listing.
+// ─────────────────────────────────────────────────────────────────────────────
+model BuyerInquiry {
+  id           String   @id @default(cuid())
+  patentId     String
+  buyerName    String
+  buyerEmail   String
+  buyerPhone   String
+  message      String?
+  budgetRange  String?
+  intendedUse  String?
+  consent      Boolean  @default(false)
+  ageConfirmed Boolean  @default(false)
+  consentTextSnapshot String?
+  status       String   @default("new") // new | contacted | closed
+  ipAddress    String? // truncated/anonymized
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patent Patent @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([patentId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([buyerEmail])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTACT MESSAGES — generic Contact Us form (separate from lead capture).
+// ─────────────────────────────────────────────────────────────────────────────
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS — self-hosted, DPDPA-aligned. No raw PII; truncated IP only.
+// Distinct event_type enables a real funnel view in the admin dashboard.
+// ─────────────────────────────────────────────────────────────────────────────
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  eventType  String // page_view | listing_view | request_now_opened | lead_submitted | express_interest_opened | buyer_inquiry_submitted
+  path       String?
+  referrer   String?
+  sessionId  String? // anonymous cookie id, no PII
+  patentId   String? // for listing_view / inquiry events
+  ipAddress  String? // truncated/anonymized (last octet dropped)
+  userAgent  String?
+  metadata   String? // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([patentId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA REQUESTS — DPDPA data principal request tracking (admin queue).
+// Manual workflow at this stage; DPDPA requires fulfillability, not automation.
+// ─────────────────────────────────────────────────────────────────────────────
+model DataRequest {
+  id              String   @id @default(cuid())
+  requestType     String // access | correction | erasure | consent_withdrawal
+  principalName   String?
+  principalEmail  String?
+  principalPhone  String?
+  source          String   @default("email") // email | phone | form
+  description     String?
+  status          String   @default("open") // open | in_progress | resolved | rejected
+  assignedToId    String?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedTo AdminUser? @relation("DataRequestAssignee", fields: [assignedToId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL LOG — dev fallback capture + audit trail for all outbound email.
+// Production uses a real transactional provider (Resend/AWS SES); this table
+// guarantees visibility in the admin panel even before provider wiring.
+// ─────────────────────────────────────────────────────────────────────────────
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  template  String? // lead_ack | sales_notification | buyer_ack | contact_ack | report_ack
+  status    String   @default("logged_dev") // sent | failed | logged_dev
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([to])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORT REQUESTS — "Get Full Commercial Readiness Report" lead-gen CTA on
+// patent detail pages. A visitor requests the full report; we capture their
+// contact details + the patent they're interested in, and the sales team
+// follows up. This is a lead-gen mechanism distinct from buyer inquiries
+// (which express transactional interest) and seller leads (which are patent
+// holders wanting to list). PII: name, email, phone. DPDPA hard-delete.
+// ─────────────────────────────────────────────────────────────────────────────
+model ReportRequest {
+  id            String   @id @default(cuid())
+  patentId      String
+  name          String
+  email         String
+  phone         String?
+  company       String?
+  role          String? // e.g. "IP Manager", "R&D Lead", "Investor"
+  message       String?
+  consent       Boolean  @default(false)
+  ageConfirmed  Boolean  @default(false)
+  consentTextSnapshot String?
+  status        String   @default("new") // new | contacted | report_sent | converted | archived
+  notes         String?
+  ipAddress     String? // truncated/anonymized
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  patent        Patent   @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([patentId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+}

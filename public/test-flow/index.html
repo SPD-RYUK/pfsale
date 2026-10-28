@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PatentSale — End-to-End Test Flow</title>
+<style>
+  :root { --blue: oklch(0.42 0.18 260); --blue-soft: oklch(0.55 0.16 260); --bg: #f8fafc; --card: #ffffff; --ink: #0f172a; --muted: #475569; --border: #e2e8f0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; }
+  header { background: linear-gradient(135deg, var(--blue), var(--blue-soft)); color: #fff; padding: 2.5rem 1.5rem; text-align: center; }
+  header h1 { margin: 0 0 .5rem; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+  header p { margin: 0; opacity: 0.92; font-size: 1.02rem; }
+  .summary { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+  .stat .n { font-size: 1.7rem; font-weight: 800; color: var(--blue); line-height: 1; }
+  .stat .l { font-size: .82rem; color: var(--muted); margin-top: .35rem; }
+  main { max-width: 1100px; margin: 0 auto 3rem; padding: 0 1.5rem; }
+  .feat { background: #eff6ff; border-left: 4px solid var(--blue); padding: .9rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1.5rem 0 0; font-size: .95rem; }
+  .feat b { color: var(--blue); }
+  section.shot { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin: 1.5rem 0; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+  .shot-head { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .num { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; background: var(--blue); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: .95rem; }
+  .shot-head h2 { margin: 0; font-size: 1.08rem; font-weight: 700; }
+  .shot-head p { margin: .2rem 0 0; color: var(--muted); font-size: .88rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .35rem; }
+  .tag { font-size: .72rem; background: #eff6ff; color: var(--blue); border: 1px solid #dbeafe; padding: .15rem .55rem; border-radius: 999px; font-weight: 600; }
+  .shot img { width: 100%; height: auto; display: block; border-top: 1px solid var(--border); }
+  .note { padding: .75rem 1.25rem; background: #f8fafc; color: var(--muted); font-size: .82rem; border-top: 1px solid var(--border); }
+  footer { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); background: var(--card); }
+  footer a { color: var(--blue); }
+  @media (max-width: 640px) { header h1 { font-size: 1.5rem; } .shot-head { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>PatentSale — End-to-End Test Flow</h1>
+  <p>Every feature from the last week's work, verified in the browser and screenshotted.</p>
+</header>
+
+<div class="summary">
+  <div class="stat"><div class="n">223</div><div class="l">Real patents in DB<br/>(211 IIT + 12 showcase)</div></div>
+  <div class="stat"><div class="n">19</div><div class="l">Paginated pages<br/>Next/Prev + URL sync</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Detail-page tabs<br/>Overview-Abstract-Claims-Description-Visuals</div></div>
+  <div class="stat"><div class="n">17.1</div><div class="l">Avg claims/patent<br/>(min 3, max 55)</div></div>
+  <div class="stat"><div class="n">5</div><div class="l">Jurisdictions<br/>US/WO/EP/AU/CA</div></div>
+</div>
+
+<div class="feat"><b>What this proves:</b> Abstract tab promoted to top-level (verbatim, uncut) · Full claims with per-claim + batch expand/collapse · Auto-fetch &amp; populate from patent number (live Google Patents) · Pagination · Royal/sapphire blue theme · 211 IIT patents + 12 showcase patents · v3 robust fetch pipeline with validation gate (title ≥15, abstract ≥100, ≥2 numbered claims, full claims+description parsing).</div>
+
+<main>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">01</div>
+      <div><h2>Homepage</h2><p>Hero, nav, blue theme, DPDPA consent.</p>
+      <div class="tags"><span class="tag">blue theme</span><span class="tag">homepage</span><span class="tag">CTAs</span></div></div>
+    </div>
+    <img src="01-homepage.png" alt="Homepage" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">02</div>
+      <div><h2>Marketplace — Page 1 of 19</h2><p>Real patent cards (IIT + showcase). Pagination controls visible.</p>
+      <div class="tags"><span class="tag">223 patents</span><span class="tag">pagination</span><span class="tag">cards</span></div></div>
+    </div>
+    <img src="02-marketplace-p1.png" alt="Marketplace page 1" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">03</div>
+      <div><h2>Marketplace — Page 2 (pagination)</h2><p>Clicked <b>Next</b> → URL became <code>?page=2</code>, different patents loaded (OTFS, microstrip antenna, Colosseum consensus).</p>
+      <div class="tags"><span class="tag">pagination</span><span class="tag">URL sync</span><span class="tag">Next/Prev</span></div></div>
+    </div>
+    <img src="03-marketplace-p2.png" alt="Marketplace page 2" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">04</div>
+      <div><h2>Patent Detail — Overview tab</h2><p>US9947118B2 (Non-interferometric phase measurement). 5-tab bar visible: Overview · Abstract · Claims · Description · Visuals.</p>
+      <div class="tags"><span class="tag">detail page</span><span class="tag">tabs</span><span class="tag">blue theme</span></div></div>
+    </div>
+    <img src="04-detail-overview.png" alt="Detail Overview tab" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">05</div>
+      <div><h2>Abstract tab — verbatim &amp; uncut</h2><p>The promoted top-level Abstract tab. "The original abstract as filed with the patent office — verbatim and uncut." No longer buried under AI-summary cards.</p>
+      <div class="tags"><span class="tag">Abstract tab</span><span class="tag">verbatim</span><span class="tag">promoted</span></div></div>
+    </div>
+    <img src="05-abstract-tab.png" alt="Abstract tab" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">06</div>
+      <div><h2>Claims tab — interactive structure</h2><p>Full claim tree with independent/dependent claims, "Expand tree"/"Collapse tree"/"Expand text" batch buttons, and per-claim "Show full claim text" toggles.</p>
+      <div class="tags"><span class="tag">full claims</span><span class="tag">claim tree</span><span class="tag">expand/collapse</span></div></div>
+    </div>
+    <img src="06-claims-tab.png" alt="Claims tab" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">07</div>
+      <div><h2>Claim expanded — "+N more chars" → "← show less"</h2><p>Clicked "Show full claim text" → button flipped to "Show truncated claim" (<code>aria-expanded=true</code>). Full claim text now visible.</p>
+      <div class="tags"><span class="tag">per-claim expand</span><span class="tag">toggle</span></div></div>
+    </div>
+    <img src="07-claim-expanded.png" alt="Claim expanded" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">07b</div>
+      <div><h2>Batch "Expand text" — all claims expanded</h2><p>Clicked the batch "Expand text" button to reveal every claim's full text at once.</p>
+      <div class="tags"><span class="tag">batch expand</span><span class="tag">full claims</span></div></div>
+    </div>
+    <img src="07b-claims-all-expanded.png" alt="All claims expanded" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">08</div>
+      <div><h2>Admin login</h2><p><code>admin@patentforsale.in</code> / <code>PatentSale123!</code> (MFA disabled in dev). Blue theme consistent.</p>
+      <div class="tags"><span class="tag">admin</span><span class="tag">auth</span></div></div>
+    </div>
+    <img src="08-admin-login.png" alt="Admin login" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">09</div>
+      <div><h2>Admin dashboard</h2><p>Post-login. Nav: Dashboard, Lead Gen, Leads, Patents, Inquiries, Data Requests, Analytics, Emails.</p>
+      <div class="tags"><span class="tag">admin</span><span class="tag">dashboard</span></div></div>
+    </div>
+    <img src="09-admin-dashboard.png" alt="Admin dashboard" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">10</div>
+      <div><h2>New-patent page — empty form</h2><p>The "Fetch &amp; auto-fill" button + patent-number input (placeholder "e.g. US10022792B2").</p>
+      <div class="tags"><span class="tag">autopopulate</span><span class="tag">admin</span></div></div>
+    </div>
+    <img src="10-new-patent-empty.png" alt="New patent empty form" loading="lazy" />
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">11</div>
+      <div><h2>Autopopulate — fetched from Google Patents</h2><p>Typed <code>US8697359B1</code> → clicked Fetch &amp; auto-fill → form populated with Title, <b>Application number US:14/054,414</b>, full Abstract, all 20 numbered Claims (with dependent references), and Description — live from Google Patents.</p>
+      <div class="tags"><span class="tag">autopopulate</span><span class="tag">Google Patents</span><span class="tag">full claims</span><span class="tag">application number</span></div></div>
+    </div>
+    <img src="11-autopopulate-filled.png" alt="Autopopulate filled form" loading="lazy" />
+    <div class="note">Verified field values: Patent number = US8697359B1 · Jurisdiction = US · Title = "CRISPR-Cas systems and methods for altering expression of gene products" · Application number = US:14/054,414 · Claims contain all 20 numbered claims including dependent refs ("2. The method of claim 1, …").</div>
+  </section>
+
+  <section class="shot">
+    <div class="shot-head">
+      <div class="num">12</div>
+      <div><h2>Marketplace filters</h2><p>Applied the "Commercial" stage filter. Filter sidebar: Field of use, Jurisdiction, Legal status, Stage, Readiness score, Grant date range — all live.</p>
+      <div class="tags"><span class="tag">filters</span><span class="tag">stage</span><span class="tag">facets</span></div></div>
+    </div>
+    <img src="12-marketplace-filters.png" alt="Marketplace filters" loading="lazy" />
+  </section>
+
+</main>
+
+<footer>
+  PatentSale end-to-end verification · dev server pid healthy · dev.log all-200s · 13 screenshots · <a href="../">back to app</a>
+</footer>
+</body>
+</html>
