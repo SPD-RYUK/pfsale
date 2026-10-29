@@ -81,15 +81,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // even as the catalogue grows. Sorted by publishedAt desc so the freshest
   // listings appear first in the XML — friendlier for crawlers that read
   // top-down.
-  const patents = await db.patent.findMany({
-    where: { published: true },
-    select: {
-      id: true,
-      publishedAt: true,
-      updatedAt: true,
-    },
-    orderBy: { publishedAt: "desc" },
-  });
+  let patents: { id: string; publishedAt: Date | null; updatedAt: Date }[] = [];
+  try {
+    patents = await db.patent.findMany({
+      where: { published: true },
+      select: {
+        id: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+      orderBy: { publishedAt: "desc" },
+    });
+  } catch (error) {
+    console.warn("Failed to fetch patents for sitemap during build:", error);
+  }
 
   const patentPages: MetadataRoute.Sitemap = patents.map((p) => ({
     url: `${SITE_URL}/patents/${p.id}`,

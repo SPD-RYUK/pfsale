@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   // `standalone` produces a minimal self-contained server bundle — required for
   // Railway (no node_modules bloat in the image). Only needed in production; in
   // dev it forces extra graph analysis that slows compiles.
