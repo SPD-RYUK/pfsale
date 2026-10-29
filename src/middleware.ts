@@ -10,6 +10,7 @@ export default withAuth(
   },
   {
     pages: { signIn: "/admin/login" },
+    secret: process.env.NEXTAUTH_SECRET || "patentsale-dev-secret-change-in-prod",
     callbacks: {
       authorized: ({ token }) => !!token,
     },

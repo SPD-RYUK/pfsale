@@ -7,8 +7,15 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = `file:${path.resolve(process.cwd(), "db/custom.db")}`;
 }
 
+if (!process.env.NEXTAUTH_SECRET) {
+  process.env.NEXTAUTH_SECRET = "patentsale-dev-secret-change-in-prod";
+}
+
 const nextConfig: NextConfig = {
   turbopack: {},
+  env: {
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "patentsale-dev-secret-change-in-prod",
+  },
   outputFileTracingIncludes: {
     "/*": ["./db/**/*"],
     "/**/*": ["./db/**/*"],
