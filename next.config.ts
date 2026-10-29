@@ -1,13 +1,18 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const isProd = process.env.NODE_ENV === "production";
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:../db/custom.db";
+  process.env.DATABASE_URL = `file:${path.resolve(process.cwd(), "db/custom.db")}`;
 }
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  outputFileTracingIncludes: {
+    "/*": ["./db/**/*"],
+    "/**/*": ["./db/**/*"],
+  },
   // `standalone` produces a minimal self-contained server bundle — required for
   // Railway (no node_modules bloat in the image). Only needed in production; in
   // dev it forces extra graph analysis that slows compiles.
