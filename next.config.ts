@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:../db/custom.db";
+}
+
 const nextConfig: NextConfig = {
   turbopack: {},
   // `standalone` produces a minimal self-contained server bundle — required for
